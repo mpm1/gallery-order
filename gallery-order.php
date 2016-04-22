@@ -81,10 +81,10 @@ function meta_box_add_field($post, $id, $label, $type, $options){
 				echo '<input type="checkbox" id="' 
 				. $field . $key 
 				. '" name="' . $id . '" value="' 
-				. esc_attr($option) "'"
-				. $checked ? "checked" : ""
-				. "/>";
-				echo "<span>" . htmlspecialchars($option) . "</span>";
+				. esc_attr($key) . '"'
+				. $checked ? 'checked' : ''
+				. '/>';
+				echo '<span>' . htmlspecialchars($option) . '</span>';
 			}
 			break;
 			
@@ -95,11 +95,11 @@ function meta_box_add_field($post, $id, $label, $type, $options){
 				echo '<input type="checkbox" id="' 
 				. $field . $key 
 				. '" name="' . $id . '" value="' 
-				. esc_attr($option) '"'
+				. esc_attr($option) . '"'
 				. $checked ? ' checked' : ''
 				. '/>';
 				echo '<span>' . htmlspecialchars($option) . '</span>';
-				echo '<input type="number" name="' . $id . '_price" value="' . $price . '"/>'
+				echo '<input type="number" name="' . $id . '_price" value="' . $price . '"/>';
 			}
 			break;
 			
@@ -119,9 +119,9 @@ function meta_box_add_field($post, $id, $label, $type, $options){
 function get_meta_values(){
 	$meta_values = array(
 		array(
-			"meta" => "_go_options"
-			"name" => "Available Types"
-			"type" => "checkbox_price"
+			"meta" => "_go_options",
+			"name" => "Available Types",
+			"type" => "checkbox_price",
 			"options" => array("GET OPTIONS")
 		)
 	);
