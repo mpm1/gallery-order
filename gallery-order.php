@@ -16,7 +16,8 @@ function order_link_short($atts, $content = null){
 		'button_class' => '',
 		'button_text' => 'Purchase',
 		'popup_class' => '',
-		'popup_feilds' => 'Name,Email,Affiliation'
+		'popup_feilds' => 'Name,Email,Affiliation',
+        'price' => '0.00'
 	), $atts, 'order_gallery');
 	
 	ob_start();
