@@ -1,10 +1,4 @@
 <?php
-/*
-  Plugin Name: Gallery Wordpress Paypal
-  Description: A library used to order image prints through paypal.
-  Author: Mark McKellar
-  Text Domain: gallery-order
- */
 namespace OrderGallery;
 defined('ABSPATH') or die('No script kiddies please!');
 
@@ -33,7 +27,8 @@ function register_settings(){
 function add_text_field($args){
     $id = $args['id'];
     $options = get_option('order_gallery_settings');
-    echo "<input id='{$id}' name='arc_options[{$id}]' type='text' value='{$options[$id]}' />";
+	$value = isset($options[$id]) == "1" ? $options[$id] : "";
+    echo "<input id='{$id}' name='order_gallery_settings[{$id}]' type='text' value='{$value}' />";
 }
 
 function options_html(){
