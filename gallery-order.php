@@ -9,15 +9,15 @@ namespace OrderGallery;
 defined('ABSPATH') or die('No script kiddies please!');
 
 include 'gallery-options.php';
+include 'gallery-post.php';
 
 function order_link_short($atts, $content = null){
 	$a = shortcode_atts(array(
 		'id' => uniqid(),
+        'order' => 0,
 		'button_class' => '',
 		'button_text' => 'Purchase',
 		'popup_class' => '',
-		'popup_feilds' => 'Name,Email,Affiliation',
-        'price' => '0.00'
 	), $atts, 'order_gallery');
 	
 	ob_start();
@@ -51,18 +51,40 @@ function create_order_button($id, $id_window, $class, $text){
 	<?php
 }
 
-function create_order_window($id, $class){
+function create_order_window($order_post, $id, $class){
+    $price = get_post_meta($order_post->ID, '_go_price', true);
+    $fields = explode("\n", get_post_meta($order_post->ID, "_go_fields", true));
+
 	$id_modal = $id . '_modal';
 	?>
-	<div id="<?php echo $id ?>" style="display: none; position: fixed; top: 0; left: 0; down: 0; right: 0; bottom: 0; z-index: 10000; background-color: rgba(0,0,0,0.4);">
-		<div id="<?php echo $id_modal ?>" class="<?php echo $class ?>" style="width: 99%; max-width: 400px; margin-top: 10px; padding: 10px; border-radius: 5px; background-color: #fff; margin-left: auto; margin-right: auto;">
-		HERE IS STUFF
+	<div id="<?php echo $id ?>" style="display: none; position: fixed; top: 0; left: 0; bottom: 0; right: 0; bottom: 0; z-index: 10000; background-color: rgba(0,0,0,0.4);">
+		<div id="<?php echo $id_modal ?>" class="<?php echo $class ?>" style="width: 99%; max-width: 400px; margin-top: 10px; padding: 10px; border-radius: 5px; background-color: #fff; margin-left: auto; margin-right: auto; z-index: 10001">
+		    <h2>Order <?php echo htmlspecialchars($order_post->post_title) ?>: $<?php echo htmlspecialchars($price) ?></h2>
+            <form method="POST" action="">
+                <?php foreach($fields as $key => $value){ 
+                    $name = preg_replace("/[^A-Za-z0-9]/", "", $value);
+                    $field_id = $id . '_' . $name; 
+                    ?>
+                    <div>
+                        <label for="<?php echo $field_id ?>"><?php echo htmlspecialchars($value) ?></label>
+                        <input type="text" id="<?php echo htmlentities($field_id) ?>" name="<?php echo htmlentities($name) ?>"/>
+                    </div>
+                <?php } ?>
+                
+                <input type="hidden" name="gallery_order_post_id_field" value="<?php echo $order_post->ID ?>" />
+
+                <div>
+                    <input type="submit" name="gallery_order_submit_button"/>
+                    <button id="<?php echo $id ?>_cancel">Cancel</button>
+                </div>
+            </form>
 		</div>
 	</div>
 	<script type="text/javascript">
 		<?php add_jquery_variable('og') ?>
-		og('#<?php echo $id ?>').click(function(){
+		og('#<?php echo $id ?>_cancel').click(function(){
 			og('#<?php echo $id?>').hide();
+            return false;
 		})
 	</script>
 	<?php
@@ -70,6 +92,14 @@ function create_order_window($id, $class){
 
 function create_order_link($att){
 	$id_window = $att['id'] . '_window';
+    $order_post = get_post($att['order']);
 	create_order_button($att['id'], $id_window, $att['button_class'], $att['button_text']);
-	create_order_window($id_window, $att['popup_class']);
+	create_order_window($order_post, $id_window, $att['popup_class']);
 }
+
+function handle_submit(){
+    if(isset($_POST['gallery_order_post_id_field']) && isset($_POST['gallery_order_submit_button'])){
+        //TODO: Call the Paypal functions
+    }
+}
+add_action('init', 'OrderGallery\handle_submit');
