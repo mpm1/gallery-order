@@ -10,6 +10,7 @@ defined('ABSPATH') or die('No script kiddies please!');
 
 include 'gallery-options.php';
 include 'gallery-post.php';
+include 'gallery-paypal.php';
 
 function order_link_short($atts, $content = null){
 	$a = shortcode_atts(array(
@@ -99,7 +100,42 @@ function create_order_link($att){
 
 function handle_submit(){
     if(isset($_POST['gallery_order_post_id_field']) && isset($_POST['gallery_order_submit_button'])){
-        //TODO: Call the Paypal functions
+        $gallery_options = get_option('order_gallery_settings');
+
+        // Get the order information
+        $order_post = get_post(intval($_POST['gallery_order_post_id_field']));
+        $price = get_post_meta($order_post->ID, '_go_price', true);
+        $fields = explode("\n", get_post_meta($order_post->ID, "_go_fields", true));
+
+        $order_sku = uniqid();
+        $order_name = $order_post->post_title;
+        $order_description = $order_post->post_content;
+        $order_price = floatval(price);
+        $order_tax = round($order_price * (floatval(isset($gallery_options['tax_percent']) ? $gallery_options['tax_percent'] : "0.00")), 2, PHP_ROUND_HALF_EVEN);
+        $order_fields = array();
+
+        foreach($fields as $key => $value){
+            $name = preg_replace("/[^A-Za-z0-9]/", "", $value);
+            $order_fields[$name] = sanitize_text_field($_POST[$name]);
+        }
+
+        $returning_page = $_SERVER['HTTP_REFERER'];
+
+        // Call paypal
+        $result = create_payment($order_sku, $order_name, $order_description, $order_price, $order_tax, $order_fields, $returning_page);
+
+        //TODO: Save the payment for later use
+
+        //Navigate to the paypal page
+        if($result['hasError']){
+            
+        }else{
+            wp_redirect($result['approvalUrl']);
+        }
+
+        
+    }else if(isset($_POST['find paypal variables'])){
+        // Handle paypal results
     }
 }
 add_action('init', 'OrderGallery\handle_submit');

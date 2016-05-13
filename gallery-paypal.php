@@ -15,11 +15,12 @@ use PayPal\Api\RedirectUrls;
 use PayPal\Api\Transaction;
 
 function get_api_context(){
-	//TODO: Get the settings
-	$apiContext = new ApiContext(new OAuthTokenCredential(
-		'AQ_o1JwXwROICc6hJXsGB8tADXsUMQ71EAkox2lojsuA1-AMI-JagfKYvZLVqVfHbCjr2GlZzLjXU2wL', //Client ID
-		'EEcb8LYWo9He__SlOkxVglo1_HfvJ8QH9_-uq6icXEAKBHQUFGYUnWTBgZ_zRpmPWoRSN8BW7wKY6BV5', // Client Secret
-	));
+    $gallery_options = get_option('order_gallery_settings');
+
+    $clientId = isset($gallery_options['paypal_client_id']) ? $gallery_options['paypal_client_id'] : '';
+    $secretId = isset($gallery_options['paypal_secret']) ? $gallery_options['paypal_secret'] : '';
+
+	$apiContext = new ApiContext(new OAuthTokenCredential($clientId, $secretId));
 }
 
 function create_payment($order_sku, $order_name, $order_description, $order_price, $order_tax, $order_fields, $returning_page, $quantity = 1, $currency = "CDN"){

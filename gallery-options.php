@@ -20,8 +20,20 @@ function register_settings(){
 	
 	add_settings_section('basic_settings', 'Basic Settings', '', 'gallery_options_section');
 	add_settings_field('jquery_name', 'JQuery Variable Name', 'OrderGallery\add_text_field', 'gallery_options_section', 'basic_settings', array('id' => 'jquery_name'));
-	
+    add_settings_field('tax_percent', 'Tax(%)', 'OrderGallery\add_decimal_field', 'gallery_options_section', 'basic_settings', array('id' => 'tax_percent'));
+    register_setting('order_gallery_settings', 'basic_settings');	
+
+    add_settings_section('paypal_settings', 'Paypal Settings', '', 'gallery_options_section');
+	add_settings_field('paypal_client_id', 'Client Id', 'OrderGallery\add_text_field', 'gallery_options_section', 'paypal_settings', array('id' => 'paypal_client_id'));
+    add_settings_field('paypal_secret', 'Client Secret', 'OrderGallery\add_text_field', 'gallery_options_section', 'paypal_settings', array('id' => 'paypal_secret'));
 	register_setting('order_gallery_settings', 'paypal_settings');	
+}
+
+function add_decimal_field($args){
+    $id = $args['id'];
+    $options = get_option('order_gallery_settings');
+	$value = isset($options[$id]) == "1" ? $options[$id] : "";
+    echo "<input id='{$id}' name='order_gallery_settings[{$id}]' type='number' step='any' value='{$value}' />";
 }
 
 function add_text_field($args){
