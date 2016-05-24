@@ -26,6 +26,7 @@ function register_settings(){
     add_settings_section('paypal_settings', 'Paypal Settings', '', 'gallery_options_section');
 	add_settings_field('paypal_client_id', 'Client Id', 'OrderGallery\add_text_field', 'gallery_options_section', 'paypal_settings', array('id' => 'paypal_client_id'));
     add_settings_field('paypal_secret', 'Client Secret', 'OrderGallery\add_text_field', 'gallery_options_section', 'paypal_settings', array('id' => 'paypal_secret'));
+    add_settings_field('paypal_mode', 'PayPal Mode', 'OrderGallery\add_text_field', 'gallery_options_section', 'paypal_settings', array('id' => 'paypal_mode'));
 	register_setting('order_gallery_settings', 'paypal_settings');	
 }
 

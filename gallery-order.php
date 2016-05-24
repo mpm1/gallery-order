@@ -52,6 +52,14 @@ function create_order_button($id, $id_window, $class, $text){
 	<?php
 }
 
+function include_dir(){
+    return dirname(__FILE__) . '/includes';
+}
+
+function paypal_dir(){
+    return include_dir() . '/PayPal/';
+}
+
 function create_order_window($order_post, $id, $class){
     $price = get_post_meta($order_post->ID, '_go_price', true);
     $fields = explode("\n", get_post_meta($order_post->ID, "_go_fields", true));
@@ -106,13 +114,15 @@ function handle_submit(){
         $order_post = get_post(intval($_POST['gallery_order_post_id_field']));
         $price = get_post_meta($order_post->ID, '_go_price', true);
         $fields = explode("\n", get_post_meta($order_post->ID, "_go_fields", true));
+        $tax_percent = floatval(isset($gallery_options['tax_percent']) ? $gallery_options['tax_percent'] : "0.00") / 100.0;
 
         $order_sku = uniqid();
         $order_name = $order_post->post_title;
         $order_description = $order_post->post_content;
-        $order_price = floatval(price);
-        $order_tax = round($order_price * (floatval(isset($gallery_options['tax_percent']) ? $gallery_options['tax_percent'] : "0.00")), 2, PHP_ROUND_HALF_EVEN);
+        $order_price = floatval($price);
+        $order_tax = round($order_price * $tax_percent, 2, PHP_ROUND_HALF_EVEN);
         $order_fields = array();
+
 
         foreach($fields as $key => $value){
             $name = preg_replace("/[^A-Za-z0-9]/", "", $value);
@@ -120,7 +130,6 @@ function handle_submit(){
         }
 
         $returning_page = $_SERVER['HTTP_REFERER'];
-
         // Call paypal
         $result = create_payment($order_sku, $order_name, $order_description, $order_price, $order_tax, $order_fields, $returning_page);
 
@@ -131,6 +140,7 @@ function handle_submit(){
             
         }else{
             wp_redirect($result['approvalUrl']);
+            exit;
         }
 
         
