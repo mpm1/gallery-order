@@ -9,6 +9,11 @@ function create_posttype(){
 			'name' => __('Order Galleries'),
 			'singular_name' => __('Order Gallery')
 		),
+        'supports' => array(
+            'title',
+            'thumbnail',
+            'comments',
+            'editor'),
 		'public' => false,
 		'show_ui' => true,
 		'show_in_menu' => true,

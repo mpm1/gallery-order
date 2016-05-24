@@ -8,6 +8,14 @@
 namespace OrderGallery;
 defined('ABSPATH') or die('No script kiddies please!');
 
+global $gallery_order_db_version;
+$gallery_order_db_version = '1.1';
+
+define("STATUS_OPEN", 0);
+define("STATUS_CANCEL", 1);
+define("STATUS_DECLINED", 2);
+define("STATUS_APPROVED", 3);
+
 include 'gallery-options.php';
 include 'gallery-post.php';
 include 'gallery-paypal.php';
@@ -29,6 +37,101 @@ function order_link_short($atts, $content = null){
 	return $output;
 }
 add_shortcode('order_gallery', 'OrderGallery\order_link_short');
+
+/* Database Functions */
+function create_order_database(){
+    // From tutorial: https://codex.wordpress.org/Creating_Tables_with_Plugins
+    global $wpdb;
+    global $gallery_order_db_version;
+
+   $table_name = $wpdb->prefix . "gallery_order"; 
+
+   $charset_collate = $wpdb->get_charset_collate();
+
+   $sql = "CREATE TABLE $table_name (
+        id mediumint(10) NOT NULL AUTO_INCREMENT,
+        guid varchar(25) NOT NULL,
+        token varchar(25) NOT NULL,
+        time datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
+        payment text NOT NULL,
+        fields text NOT NULL, 
+        error text,
+        message text,
+        status smallint(2) NOT NULL,
+        tax DECIMAL(8, 2) NOT NULL,
+        total DECIMAL(8, 2) NOT NULL,
+        CONSTRAINT guid_key UNIQUE (guid),
+        PRIMARY KEY (id)
+   ) $charset_collate;";
+
+   require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
+	dbDelta( $sql );
+
+    add_option( 'gallery_order_db_version', $gallery_order_db_version );
+}
+
+function update_db_check() {
+    global $gallery_order_db_version;
+    $siteOption = get_site_option('gallery_order_db_version');
+    if($siteOption != $gallery_order_db_version){
+        create_order_database();
+    }
+}
+add_action('plugins_loaded', 'OrderGallery\update_db_check');
+
+function create_order_entry($guid, $token, $payment, $fields_data, $tax, $total){
+    global $wpdb;
+
+    $table_name = $wpdb->prefix . "gallery_order"; 
+    $wpdb->insert(
+        $table_name,
+        array(
+            'guid' => $guid,
+            'token' => $token,
+            'time' => current_time('mysql'),
+            'payment' => print_r($payment, 1),
+            'fields' => json_encode($fields_data),
+            'status' => STATUS_OPEN,
+            'tax' => $tax,
+            'total' => $total
+        )
+    );
+}
+
+function get_order_entry($guid){
+    global $wpdb;
+
+    $table_name = $wpdb->prefix . "gallery_order";
+    $query = "SELECT * FROM $table_name WHERE guid = '$guid'";
+    $row_result = $wpdb->get_row($query, ARRAY_A);
+    
+    return $row_result;
+}
+
+function update_order_entry($guid, $data){
+    global $wpdb;
+
+    $table_name = $wpdb->prefix . "gallery_order";
+    $wpdb->update(
+        $table_name,
+        array(
+            'token' => $data['token'],
+            'time' => $data['time'],
+            'payment' => $data['payment'],
+            'fields' => $data['fields'],
+            'status' => $data['status'],
+            'tax' => $data['tax'],
+            'total' => $data['total'],
+            'error' => $data['error'],
+            'message' => $data['message']
+        ),
+        array(
+            'guid' => $guid
+        )
+    );
+}
+
+/* End Database Functions */
 
 function add_jquery_variable($var_name){
 	$gallery_options = get_option('order_gallery_settings');
@@ -116,7 +219,8 @@ function handle_submit(){
         $fields = explode("\n", get_post_meta($order_post->ID, "_go_fields", true));
         $tax_percent = floatval(isset($gallery_options['tax_percent']) ? $gallery_options['tax_percent'] : "0.00") / 100.0;
 
-        $order_sku = uniqid();
+        $order_id = uniqid();
+        $order_sku = strval($order_post->ID);
         $order_name = $order_post->post_title;
         $order_description = $order_post->post_content;
         $order_price = floatval($price);
@@ -129,23 +233,41 @@ function handle_submit(){
             $order_fields[$name] = sanitize_text_field($_POST[$name]);
         }
 
-        $returning_page = $_SERVER['HTTP_REFERER'];
-        // Call paypal
-        $result = create_payment($order_sku, $order_name, $order_description, $order_price, $order_tax, $order_fields, $returning_page);
+        $returning_page = strtok($_SERVER['HTTP_REFERER'], '?');
 
-        //TODO: Save the payment for later use
+        // Call paypal
+        $result = create_payment($order_id, $order_sku, $order_name, $order_description, $order_price, $order_tax, $order_fields, $returning_page);
+        $payment = $result['payment']->toJSON();
+
+        create_order_entry($order_id, $payment->token ? $payment->token : 'NONE', $payment, $order_fields, $order_tax, $order_tax + $order_price);
 
         //Navigate to the paypal page
         if($result['hasError']){
-            
+            $order_entry = get_order_entry($order_id);
+            $order_entry['status'] = STATUS_DECLINED;
+            $order_entry['error'] = $result['error'];
+            $order_entry['message'] = "Error creating the order.";
+            $order_entry['time'] = current_time('mysql');
         }else{
             wp_redirect($result['approvalUrl']);
             exit;
         }
 
         
-    }else if(isset($_POST['find paypal variables'])){
-        // Handle paypal results
+    }else if(isset($_GET['cancel']) && isset($_GET['token'])){
+        // Handle Cancel
+        $order_entry = get_order_entry($_GET['cancel']);
+        
+        if($order_entry['status'] == STATUS_OPEN){
+            $order_entry['status'] = STATUS_CANCEL;
+            $order_entry['message'] = "Canceled by payer.";
+            $order_entry['time'] = current_time('mysql');
+
+            update_order_entry($_GET['cancel'], $order_entry);
+        } 
+    }
+    else if(isset($_GET['PayerID']) && isset($_GET['paymentId'])){
+        //TODO: Handle Success
     }
 }
 add_action('init', 'OrderGallery\handle_submit');

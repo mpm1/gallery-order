@@ -83,7 +83,7 @@ function get_api_context(){
     return $apiContext;
 }
 
-function create_payment($order_sku, $order_name, $order_description, $order_price, $order_tax, $order_fields, $returning_page, $quantity = 1, $currency = "CAD"){
+function create_payment($order_id, $order_sku, $order_name, $order_description, $order_price, $order_tax, $order_fields, $returning_page, $quantity = 1, $currency = "CAD"){
 	// USING EXAMPLE: http://paypal.github.io/PayPal-PHP-SDK/sample/doc/payments/CreatePaymentUsingPayPal.html
 
 	// Create the Payer
@@ -115,14 +115,14 @@ function create_payment($order_sku, $order_name, $order_description, $order_pric
 	$transaction->setAmount($amount)
 				->setItemList($itemList)
 				->setDescription($order_description)
-				->setInvoiceNumber(uniqid());
+				->setInvoiceNumber($order_id);
 
 	$redirectUrls = new RedirectUrls();
-	$redirectUrls->setReturnUrl($returning_page . '?order=' . htmlentities($order_sku))
-				 ->setCancelUrl($returning_page . '?cancel=' . htmlentities($order_sku));
+	$redirectUrls->setReturnUrl($returning_page . '?order=' . htmlentities($order_id))
+				 ->setCancelUrl($returning_page . '?cancel=' . htmlentities($order_id));
 				 
 	$payment = new Payment();
-	$payment->setIntent("sale")
+	$payment->setIntent("order")
 			->setPayer($payer)
 			->setRedirectUrls($redirectUrls)
 			->setTransactions(array($transaction));
