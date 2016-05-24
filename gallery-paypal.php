@@ -24,12 +24,14 @@ include paypal_dir() . 'Core/PayPalHttpConnection.php';
 include paypal_dir() . 'Converter/FormatConverter.php';
 include paypal_dir() . 'Validation/NumericValidator.php';
 include paypal_dir() . 'Validation/UrlValidator.php';
+include paypal_dir() . 'Validation/ArgumentValidator.php';
 include paypal_dir() . 'Rest/IResource.php';
 include paypal_dir() . 'Rest/ApiContext.php';
 include paypal_dir() . 'Transport/PayPalRestCall.php';
 include paypal_dir() . 'Common/ArrayUtil.php';
 include paypal_dir() . 'Common/ReflectionUtil.php';
 include paypal_dir() . 'Common/PayPalModel.php';
+include paypal_dir() . 'Api/PayerInfo.php';
 include paypal_dir() . 'Api/Links.php';
 include paypal_dir() . 'Common/PayPalResourceModel.php';
 include paypal_dir() . 'Security/Cipher.php';
@@ -46,6 +48,13 @@ include paypal_dir() . 'Api/ItemList.php';
 include paypal_dir() . 'Api/Payer.php';
 include paypal_dir() . 'Api/Item.php';
 include paypal_dir() . 'Api/Payment.php';
+include paypal_dir() . 'Api/BaseAddress.php';
+include paypal_dir() . 'Api/Address.php';
+include paypal_dir() . 'Api/ShippingAddress.php';
+include paypal_dir() . 'Api/Payee.php';
+include paypal_dir() . 'Api/PaymentExecution.php';
+include paypal_dir() . 'Api/RelatedResources.php';
+include paypal_dir() . 'Api/Order.php';
 
 use PayPal\Api\Amount as Amount;
 use PayPal\Api\Details as Details;
@@ -55,6 +64,7 @@ use PayPal\Api\Payer as Payer;
 use PayPal\Api\Payment as Payment;
 use PayPal\Api\RedirectUrls as RedirectUrls;
 use PayPal\Api\Transaction as Transaction;
+use PayPal\Api\PaymentExecution as PaymentExecution;
 
 use PayPal\Rest\ApiContext as ApiContext;
 use PayPal\Auth\OAuthTokenCredential as OAuthTokenCredential;
@@ -138,4 +148,29 @@ function create_payment($order_id, $order_sku, $order_name, $order_description, 
 	$approvalUrl = $payment->getApprovalLink();
 	
 	return array('payment' => $payment, 'approvalUrl' => $approvalUrl, 'hasError' => false, 'error' => null);
+}
+
+function handle_payment($order, $payment_id, $payer_id){
+    $apiContext = get_api_context();
+    $payment = Payment::get($payment_id, $apiContext);
+
+    $execution = new PaymentExecution();
+    $execution->setPayerId($payer_id);
+
+    try {
+            $result = $payment->execute($execution, $apiContext);
+            $order['status'] = $result->getState() == 'approved' ? STATUS_APPROVED : STATUS_DECLINED;
+
+            try{
+                $payment = Payment::get($payment_id, $apiContext);
+            }catch(Exception $ex){
+                $order['error'] = 'An error occured while getting the resulting payment.';
+                $order['message'] = $ex->getMessage();
+            }
+    }catch(Exception $ex){
+        $order['error'] = 'An error occured while getting the resulting payment.';
+        $order['message'] = $ex->getMessage();
+    }
+
+    return $order;
 }

@@ -267,7 +267,12 @@ function handle_submit(){
         } 
     }
     else if(isset($_GET['PayerID']) && isset($_GET['paymentId'])){
-        //TODO: Handle Success
+        $order_entry = get_order_entry($_GET['order']);
+        $order_result = handle_payment($order_entry, $_GET['paymentId'], $_GET['PayerID']);
+
+        update_order_entry($_GET['order'], $order_result);
+
+        //TODO: Send email
     }
 }
 add_action('init', 'OrderGallery\handle_submit');
