@@ -6,8 +6,8 @@ function create_posttype(){
 	// Create the Order Gallery Post Type
 	$args = array(
 		'labels' => array(
-			'name' => __('Order Galleries'),
-			'singular_name' => __('Order Gallery')
+			'name' => 'Order Galleries',
+			'singular_name' => 'Order Gallery'
 		),
         'supports' => array(
             'title',
@@ -18,7 +18,7 @@ function create_posttype(){
 		'show_ui' => true,
 		'show_in_menu' => true,
 		'has_archive' => true,
-		'taxonomies' => 'category',
+		'taxonomies' => array('category'),
 		'rewrite' => array('slug' => 'gallery-order')
 	);
 	
