@@ -53,6 +53,7 @@ function create_order_database(){
         id mediumint(10) NOT NULL AUTO_INCREMENT,
         guid varchar(25) NOT NULL,
         token varchar(25) NOT NULL,
+        sku varchar(25) NOT NULL,
         time datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
         payment text NOT NULL,
         fields text NOT NULL, 
@@ -80,7 +81,7 @@ function update_db_check() {
 }
 add_action('plugins_loaded', 'OrderGallery\update_db_check');
 
-function create_order_entry($guid, $token, $payment, $fields_data, $tax, $total){
+function create_order_entry($guid, $sku, $token, $payment, $fields_data, $tax, $total){
     global $wpdb;
 
     $table_name = $wpdb->prefix . "gallery_order"; 
@@ -89,6 +90,7 @@ function create_order_entry($guid, $token, $payment, $fields_data, $tax, $total)
         array(
             'guid' => $guid,
             'token' => $token,
+            'sku' => $sku,
             'time' => current_time('mysql'),
             'payment' => print_r($payment, 1),
             'fields' => json_encode($fields_data),
@@ -124,7 +126,8 @@ function update_order_entry($guid, $data){
             'tax' => $data['tax'],
             'total' => $data['total'],
             'error' => $data['error'],
-            'message' => $data['message']
+            'message' => $data['message'],
+            'sku' => $data['sku']
         ),
         array(
             'guid' => $guid
@@ -264,7 +267,7 @@ function handle_submit(){
         $result = create_payment($order_id, $order_sku, $order_name, $order_description, $order_price, $order_tax, $order_fields, $returning_page);
         $payment = $result['payment']->toJSON();
 
-        create_order_entry($order_id, $payment->token ? $payment->token : 'NONE', $payment, $order_fields, $order_tax, $order_tax + $order_price);
+        create_order_entry($order_id, $order_sku, $payment->token ? $payment->token : 'NONE', $payment, $order_fields, $order_tax, $order_tax + $order_price);
 
         //Navigate to the paypal page
         if($result['hasError']){
@@ -362,6 +365,7 @@ function payments_html(){
             <tr class="head">
                 <th>Order Id</th>
                 <th>Last Updated</th>
+                <th>SKU</th>
                 <th>Fields</th>
                 <th>Status</th>
                 <th>Subtotal</th>
@@ -373,7 +377,8 @@ function payments_html(){
             <tr class="body">
                 <td><?php echo htmlspecialchars($row['guid']) ?></td>
                 <td><?php echo htmlspecialchars($row['time']) ?></td>
-                <td><?php echo htmlspecialchars(prettyPrint($row['fields'])) ?></td>
+                <td><?php echo htmlspecialchars($row['sku']) ?></td>
+                <td><?php echo htmlspecialchars($row['fields']) ?></td>
                 <td><?php echo payments_status_string($row['status']) ?></td>
                 <td><?php echo htmlspecialchars($row['total'] - $row['tax']) ?></td>
                 <td><?php echo htmlspecialchars($row['tax']) ?></td>
