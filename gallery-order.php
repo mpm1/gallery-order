@@ -179,7 +179,8 @@ function create_order_window($order_post, $id, $class){
                     ?>
                     <div>
                         <label for="<?php echo $field_id ?>"><?php echo htmlspecialchars($value) ?></label>
-                        <input type="text" id="<?php echo htmlentities($field_id) ?>" name="<?php echo htmlentities($name) ?>"/>
+                        <input type="text" id="<?php echo htmlentities($field_id) ?>" name="<?php echo htmlentities($name) ?>" class="input"/>
+                        <span class="error"></span>
                     </div>
                 <?php } ?>
                 
@@ -197,7 +198,30 @@ function create_order_window($order_post, $id, $class){
 		og('#<?php echo $id ?>_cancel').click(function(){
 			og('#<?php echo $id?>').hide();
             return false;
-		})
+		});
+        og('#<?php echo $id_modal ?> > form').submit(function(event){
+            var validated = true;
+
+            og('#<?php echo $id_modal ?> > form input.input').each(function(index){
+                var isValid = false;
+                var val = og(this).val();
+                
+                if(val && val != null && val.trim().length > 0){
+                    isValid = true;
+                }
+
+                if(!isValid){
+                    validated = false;
+                    og(this).siblings('.error').text('Please enter a value');
+                }else{
+                    og(this).siblings('.error').text('');
+                }
+            });
+            
+            if(!validated){
+                event.preventDefault();
+            }
+        });
 	</script>
 	<?php
 }
@@ -276,3 +300,7 @@ function handle_submit(){
     }
 }
 add_action('init', 'OrderGallery\handle_submit');
+
+function send_order_email(){
+    
+}
