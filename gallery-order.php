@@ -15,6 +15,7 @@ define("STATUS_OPEN", 0);
 define("STATUS_CANCEL", 1);
 define("STATUS_DECLINED", 2);
 define("STATUS_APPROVED", 3);
+define("STATUS_DELIVERED", 4);
 
 include 'gallery-options.php';
 include 'gallery-post.php';
@@ -300,6 +301,90 @@ function handle_submit(){
     }
 }
 add_action('init', 'OrderGallery\handle_submit');
+
+/* View Payments Page */
+function payments_generate_link($satus, $page, $per_page){
+    $link = strtok($_SERVER['REQUEST_URI'], '?');
+    $link .= '?status=' . $status;
+    $link .= "&page=$page&perpage=$per_page";
+
+    return $link;
+}
+
+function payments_status_string($link_status){
+    switch($link_status){
+        case STATUS_OPEN:
+            return "Open";
+            break;
+        case STATUS_CANCEL:
+            return "Cancel";
+            break;
+        case STATUS_DECLINED:
+            return "Declined";
+            break;
+        case STATUS_APPROVED:
+            return "Approved";
+            break;
+        case STATUS_DELIVERED:
+            return "Delivered";
+            break;
+    }
+}
+
+function payments_html(){
+    global $wpdb;
+    $table_name = $wpdb->prefix . "gallery_order";
+
+    $status = isset($_GET['status']) ? intval($_GET['status']) : STATUS_APPROVED;
+    $page = isset($_GET['page']) ? intval($_GET['page']) : 0;
+    $per_page = isset($_GET['perpage']) ? intval($_GET['perpage']) : 1000;
+    $start_index = $page * $per_page;
+
+    $query = "SELECT * FROM $table_name ORDER BY time DESC LIMIT $start_index,$per_page;";
+
+    ?>
+    <style>
+        .order_table .head {
+            background-color:  #9fdaea;
+        }
+        
+        .order_table .body {
+            background-color:  #fff;
+        }
+    </style>
+    <h1>Orders for <?php _e(payments_status_string($status))?></h1>
+    <div>
+       <a href="<?php echo payments_generate_link(STATUS_APPROVED, $page, $per_page) ?>">Approved</a>
+       <a href="<?php echo payments_generate_link(STATUS_DELIVERED, $page, $per_page) ?>">Delivered</a>
+    </div>
+    <div>
+        <table class="order_table">
+            <tr class="head">
+                <th>Order Id</th>
+                <th>Last Updated</th>
+                <th>Fields</th>
+                <th>Status</th>
+                <th>Subtotal</th>
+                <th>Tax</th>
+                <th>Total</th>
+                <th>Actions</th>
+            </tr>
+            <?php foreach($wpdb->get_results($query, ARRAY_A) as $key => $row){ ?>
+            <tr class="body">
+                <td><?php echo htmlspecialchars($row['guid']) ?></td>
+                <td><?php echo htmlspecialchars($row['time']) ?></td>
+                <td><?php echo htmlspecialchars(prettyPrint($row['fields'])) ?></td>
+                <td><?php echo payments_status_string($row['status']) ?></td>
+                <td><?php echo htmlspecialchars($row['total'] - $row['tax']) ?></td>
+                <td><?php echo htmlspecialchars($row['tax']) ?></td>
+                <td><?php echo htmlspecialchars($row['total']) ?></td>
+                <td></td>
+            </tr>
+            <?php } ?>
+        </table>
+    </div>
+    <?php
+}
 
 function send_order_email(){
     

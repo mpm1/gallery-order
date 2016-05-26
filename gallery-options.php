@@ -10,6 +10,14 @@ function create_settings_window(){
 		'order_gallery_settings_page',
 		'OrderGallery\options_html'
 	);
+
+    add_menu_page(
+		'Order Gallery Payments',
+		'Order Gallery Payments',
+		'manage_options',
+		'order_gallery_payments_page',
+		'OrderGallery\payments_html'
+	);
 	
 	add_action('admin_init', 'OrderGallery\register_settings');
 }
