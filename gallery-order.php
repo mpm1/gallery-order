@@ -295,10 +295,12 @@ function handle_submit(){
     }
     else if(isset($_GET['PayerID']) && isset($_GET['paymentId'])){
         $order_entry = get_order_entry($_GET['order']);
-        $returning_page = strtok($_SERVER['HTTP_REFERER'], '?');
+        $returning_page = strtok("//".$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'], '?');
 
-        setcookie('order', $_GET['order'], 60 * 60, COOKIEPATH, COOKIE_DOMAIN, false);
-        setcookie('returning_page', $returning_page, 60 * 60, COOKIEPATH, COOKIE_DOMAIN, false);
+        $_SESSION['gallery_order'] = array(
+            'order' => $order_entry,
+            'returning_page' => $returning_page
+        );
 
         if($order_entry != null && $order_entry['status'] == STATUS_OPEN){
             $order_result = handle_payment($order_entry, $_GET['paymentId'], $_GET['PayerID']);
@@ -338,14 +340,16 @@ function order_return_link($atts, $content = null){
         'text' => 'Return to Gallery'
 	), $atts, 'order_gallery');
 
-    if(isset($_COOKIE['returning_page'])){
-        $return_url = $_COOKIE['returning_page'];
+    if(isset($_SESSION['gallery_order'])){
+        $gallery_order = $_SESSION['gallery_order'];
+        $return_url = $gallery_order['returning_page'];
     }else{
         $return_url = '#';
     }
 	
 	ob_start();
     ?>
+    
     <a id="<?php echo $a['id'] ?>" class="<?php echo $a['class'] ?>" href="<?php echo $return_url ?>"><?php echo htmlspecialchars($a['text']) ?></a>
     <?php
     $output = ob_get_contents();
@@ -356,9 +360,8 @@ function order_return_link($atts, $content = null){
 add_shortcode('gallery_order_return', 'OrderGallery\order_return_link');
 
 function get_order_message($atts, $content = null){
-    if(!empty($_COOKIE['order'])){
-        $order_entry = get_order_entry($_COOKIE['order']);
-        return $order_entry['message'];
+    if(!empty($_SESSION['gallery_order'])){
+        return $_SESSION['gallery_order']->order['message'];
     }else{
         return 'No error recorded.';
     }
