@@ -239,6 +239,7 @@ function create_order_link($att){
 
 function handle_submit(){
     if(isset($_POST['gallery_order_post_id_field']) && isset($_POST['gallery_order_submit_button'])){
+        $returning_page = strtok($_SERVER['HTTP_REFERER'], '?');
         $gallery_options = get_option('order_gallery_settings');
 
         // Get the order information
@@ -260,8 +261,6 @@ function handle_submit(){
             $name = preg_replace("/[^A-Za-z0-9]/", "", $value);
             $order_fields[$name] = sanitize_text_field($_POST[$name]);
         }
-
-        $returning_page = strtok($_SERVER['HTTP_REFERER'], '?');
 
         // Call paypal
         $result = create_payment($order_id, $order_sku, $order_name, $order_description, $order_price, $order_tax, $order_fields, $returning_page);
@@ -286,7 +285,7 @@ function handle_submit(){
         // Handle Cancel
         $order_entry = get_order_entry($_GET['cancel']);
         
-        if($order_entry['status'] == STATUS_OPEN){
+        if($order_entry != null && $order_entry['status'] == STATUS_OPEN){
             $order_entry['status'] = STATUS_CANCEL;
             $order_entry['message'] = "Canceled by payer.";
             $order_entry['time'] = current_time('mysql');
@@ -296,14 +295,75 @@ function handle_submit(){
     }
     else if(isset($_GET['PayerID']) && isset($_GET['paymentId'])){
         $order_entry = get_order_entry($_GET['order']);
-        $order_result = handle_payment($order_entry, $_GET['paymentId'], $_GET['PayerID']);
+        $returning_page = strtok($_SERVER['HTTP_REFERER'], '?');
 
-        update_order_entry($_GET['order'], $order_result);
+        setcookie('order', $_GET['order'], 60 * 60, COOKIEPATH, COOKIE_DOMAIN, false);
+        setcookie('returning_page', $returning_page, 60 * 60, COOKIEPATH, COOKIE_DOMAIN, false);
 
-        //TODO: Send email
+        if($order_entry != null && $order_entry['status'] == STATUS_OPEN){
+            $order_result = handle_payment($order_entry, $_GET['paymentId'], $_GET['PayerID']);
+
+            update_order_entry($_GET['order'], $order_result);
+
+            $gallery_options = get_option('order_gallery_settings');
+
+            if($order_result['status'] == STATUS_APPROVED){
+                //TODO: Send email
+
+                // Redirect to the approved site
+                if(isset($gallery_options['success_url']) && !empty($gallery_options['success_url'])){
+                    wp_redirect($gallery_options['success_url']);
+                    exit;
+                }
+            }else if($order_result['status'] == STATUS_DECLINED){
+                // Redirect the the failed site
+                if(isset($gallery_options['failure_url']) && !empty($gallery_options['failure_url'])){
+                    wp_redirect($gallery_options['failure_url']);
+                    exit;
+                }
+            }
+
+            
+        }
     }
 }
-add_action('init', 'OrderGallery\handle_submit');
+add_action('init', 'OrderGallery\handle_submit', 1);
+
+/* Shortcode for results page */
+/* NOTE: Sessions must be ebabled for these shortcode to work. */
+function order_return_link($atts, $content = null){
+	$a = shortcode_atts(array(
+		'id' => uniqid(),
+		'class' => '',
+        'text' => 'Return to Gallery'
+	), $atts, 'order_gallery');
+
+    if(isset($_COOKIE['returning_page'])){
+        $return_url = $_COOKIE['returning_page'];
+    }else{
+        $return_url = '#';
+    }
+	
+	ob_start();
+    ?>
+    <a id="<?php echo $a['id'] ?>" class="<?php echo $a['class'] ?>" href="<?php echo $return_url ?>"><?php echo htmlspecialchars($a['text']) ?></a>
+    <?php
+    $output = ob_get_contents();
+	ob_end_clean();
+	
+	return $output;
+}
+add_shortcode('gallery_order_return', 'OrderGallery\order_return_link');
+
+function get_order_message($atts, $content = null){
+    if(!empty($_COOKIE['order'])){
+        $order_entry = get_order_entry($_COOKIE['order']);
+        return $order_entry['message'];
+    }else{
+        return 'No error recorded.';
+    }
+}
+add_shortcode('gallery_order_message', 'OrderGallery\get_order_message');
 
 /* View Payments Page */
 function payments_generate_link($satus, $page, $per_page){

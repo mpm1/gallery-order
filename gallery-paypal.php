@@ -37,7 +37,7 @@ include paypal_dir() . 'Common/PayPalResourceModel.php';
 include paypal_dir() . 'Security/Cipher.php';
 include paypal_dir() . 'Validation/JsonValidator.php';
 include paypal_dir() . 'Cache/AuthorizationCache.php';
-include paypal_dir() . 'Auth/OauthTokenCredential.php';
+include paypal_dir() . 'Auth/OAuthTokenCredential.php';
 include paypal_dir() . 'Api/RedirectUrls.php';
 include paypal_dir() . 'Api/CartBase.php';
 include paypal_dir() . 'Api/TransactionBase.php';
@@ -168,6 +168,7 @@ function handle_payment($order, $payment_id, $payer_id){
                 $order['message'] = $ex->getMessage();
             }
     }catch(Exception $ex){
+        $order['status'] = STATUS_DECLINED;
         $order['error'] = 'An error occured while getting the resulting payment.';
         $order['message'] = $ex->getMessage();
     }

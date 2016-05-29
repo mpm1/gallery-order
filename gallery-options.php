@@ -29,6 +29,8 @@ function register_settings(){
 	add_settings_section('basic_settings', 'Basic Settings', '', 'gallery_options_section');
 	add_settings_field('jquery_name', 'JQuery Variable Name', 'OrderGallery\add_text_field', 'gallery_options_section', 'basic_settings', array('id' => 'jquery_name'));
     add_settings_field('tax_percent', 'Tax(%)', 'OrderGallery\add_decimal_field', 'gallery_options_section', 'basic_settings', array('id' => 'tax_percent'));
+    add_settings_field('success_url', 'Success Url', 'OrderGallery\add_text_field', 'gallery_options_section', 'basic_settings', array('id' => 'success_url'));
+    add_settings_field('failure_url', 'Failure Url', 'OrderGallery\add_text_field', 'gallery_options_section', 'basic_settings', array('id' => 'failure_url'));
     register_setting('order_gallery_settings', 'basic_settings');	
 
     add_settings_section('paypal_settings', 'Paypal Settings', '', 'gallery_options_section');
