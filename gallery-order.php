@@ -361,7 +361,7 @@ add_shortcode('gallery_order_return', 'OrderGallery\order_return_link');
 
 function get_order_message($atts, $content = null){
     if(!empty($_SESSION['gallery_order'])){
-        return $_SESSION['gallery_order']->order['message'];
+        return $_SESSION['gallery_order']['order']['message'];
     }else{
         return 'No error recorded.';
     }
