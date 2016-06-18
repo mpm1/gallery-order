@@ -275,6 +275,7 @@ function handle_submit(){
             $order_entry['error'] = $result['error'];
             $order_entry['message'] = "Error creating the order.";
             $order_entry['time'] = current_time('mysql');
+            update_order_entry($order_id, $order_entry);
         }else{
             wp_redirect($result['approvalUrl']);
             exit;
@@ -284,6 +285,16 @@ function handle_submit(){
     } else if(isset($_POST['orderDetails']) && isset($_POST['orderId']) && is_user_logged_in()){
         $response_data = get_payment_status($_POST['orderDetails']);
         wp_send_json($response_data->toArray());
+    } else if(isset($_POST['orderAuthorize']) && isset($_POST['orderId']) && is_user_logged_in()){
+        $response_data = authorize_order($_POST['orderAuthorize']);
+
+        if($response_data == TRUE){
+            $order_entry = get_order_entry($_POST['orderId']);
+            $order_entry['status'] = STATUS_DELIVERED;
+            update_order_entry($_POST['orderId'], $order_entry);
+        }
+
+        wp_send_json($response_data);
     } else if(isset($_GET['cancel']) && isset($_GET['token'])){
         // Handle Cancel
         $order_entry = get_order_entry($_GET['cancel']);
@@ -454,6 +465,7 @@ function payments_html(){
                         payment_<?php echo $key ?> = <?php echo $row['payment'] ?>;
                     </script>
                     <button onclick="return GetOrderDetails(payment_<?php echo $key ?>.id, '<?php echo htmlentities($row['guid'])?>');">Details</button>
+                    <button onclick="return AuthorizeOrder(payment_<?php echo $key ?>.id, '<?php echo htmlentities($row['guid'])?>');">Authorize</button>
                 </td>
             </tr>
             <?php } ?>
@@ -478,6 +490,23 @@ function payments_html(){
             });
 
             return false;
+        }
+        function AuthorizeOrder(paymentId, orderId){
+            <?php add_jquery_variable('og') ?>
+            og.ajax({
+                method: 'POST',
+                data: {
+                    orderAuthorize: paymentId,
+                    orderId: orderId
+                },
+                error: function(e){
+                    console.error("Error: " + e);
+                },
+                success: function(result){
+                    console.log(result);
+                    location.reload();
+                }
+            });
         }
     </script>
     <?php

@@ -182,3 +182,27 @@ function get_payment_status($payment_id){
 
     return $payment;
 }
+
+function authorize_order($payment_id){
+    $apiContext = get_api_context();
+    $payment = Payment::get($payment_id, $apiContext);
+
+    $transactions = $payment->getTransactions();
+    $transaction = $transactions[0];
+    $relatedResources = $transaction->getRelatedResources();
+    $relatedResource = $relatedResources[0];
+    $order = $relatedResource->getOrder();
+
+    $authorization = new Authorization();
+    $authorization->setAmount(clone $transaction->getAmount());
+
+    try {
+        $result = $order->authorize($authorization, $apiContext);
+
+        return $result->getState() == 'authorized' ? TRUE : FALSE;
+    }catch(Exception $ex){
+        return FALSE;
+    }
+
+    return FALSE;
+}
