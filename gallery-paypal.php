@@ -175,3 +175,10 @@ function handle_payment($order, $payment_id, $payer_id){
 
     return $order;
 }
+
+function get_payment_status($payment_id){
+    $apiContext = get_api_context();
+    $payment = Payment::get($payment_id, $apiContext);
+
+    return $payment;
+}

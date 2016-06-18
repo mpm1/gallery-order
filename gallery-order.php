@@ -281,7 +281,10 @@ function handle_submit(){
         }
 
         
-    }else if(isset($_GET['cancel']) && isset($_GET['token'])){
+    } else if(isset($_POST['orderDetails']) && isset($_POST['orderId']) && is_user_logged_in()){
+        $response_data = get_payment_status($_POST['orderDetails']);
+        wp_send_json($response_data->toArray());
+    } else if(isset($_GET['cancel']) && isset($_GET['token'])){
         // Handle Cancel
         $order_entry = get_order_entry($_GET['cancel']);
         
@@ -446,11 +449,37 @@ function payments_html(){
                 <td><?php echo htmlspecialchars($row['total'] - $row['tax']) ?></td>
                 <td><?php echo htmlspecialchars($row['tax']) ?></td>
                 <td><?php echo htmlspecialchars($row['total']) ?></td>
-                <td></td>
+                <td>
+                    <script type="text/javascript">
+                        payment_<?php echo $key ?> = <?php echo $row['payment'] ?>;
+                    </script>
+                    <button onclick="return GetOrderDetails(payment_<?php echo $key ?>.id, '<?php echo htmlentities($row['guid'])?>');">Details</button>
+                </td>
             </tr>
             <?php } ?>
         </table>
     </div>
+    <script type="text/javascript">
+        function GetOrderDetails(paymentId, orderId){
+            <?php add_jquery_variable('og') ?>
+            og.ajax({
+                method: 'POST',
+                data: {
+                    orderDetails: paymentId,
+                    orderId: orderId
+                },
+                error: function(e){
+                    console.error("Error: " + e);
+                },
+                success: function(result){
+                    var resultString = JSON.stringify(result, null, 2);
+                    console.log(resultString);
+                }
+            });
+
+            return false;
+        }
+    </script>
     <?php
 }
 
